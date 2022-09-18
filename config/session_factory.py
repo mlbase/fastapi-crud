@@ -1,6 +1,8 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from dotenv import load_dotenv
+
+
 import os
 
 load_dotenv()
@@ -13,3 +15,4 @@ SQLALCHEMY_DATABASE_URL: str = f"mysql+pymysql://{DB_USERNAME}:{DB_PASSWORD}@{DB
 
 engine = create_engine(f"{SQLALCHEMY_DATABASE_URL}")
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
