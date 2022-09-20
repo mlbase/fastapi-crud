@@ -1,1 +1,1 @@
-from . import dbcon
+from . import dependencies
