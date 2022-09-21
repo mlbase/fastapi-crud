@@ -46,10 +46,10 @@ def read_user_me(
 
 ```python
 def get_current_user(db: Session = Depends(get_db)) -> model.User:
-    user = crud.user.get_by_email(db=db, email="test@test.com")
+    user = crud.user.get_by_email(session=db, email="test@test.com")
     if not user:
         user_in = UserCreate.parse_obj({'email': 'test@test.com', 'password': '1234', 'full_name': 'testing..'})
-        user = crud.user.create(db=db, obj_in=user_in)
+        user = crud.user.create(session=db, obj_in=user_in)
 
     return user
 ```
