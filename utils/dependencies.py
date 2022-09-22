@@ -2,19 +2,22 @@ from typing import Generator
 
 import model
 import crud
-from sqlalchemy.orm import Session
+import databases
+from sqlalchemy.sql import select
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import jwt
 from pydantic import ValidationError
 
-from config.session_factory import SessionLocal
+from config.session_factory import SessionLocal, SQLALCHEMY_DATABASE_URL
 from schema.user import UserCreate, User, UserUpdate
 from schema.token import Token, TokenPayload
 from config import security
 from config.setting import settings
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+
+database = databases.Database(SQLALCHEMY_DATABASE_URL)
 
 
 def get_db() -> Generator:
@@ -26,7 +29,7 @@ def get_db() -> Generator:
 
 
 async def get_current_user(
-    db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)
+    token: str = Depends(oauth2_scheme)
 ) -> model.User:
     try:
         payload = jwt.decode(
@@ -38,7 +41,14 @@ async def get_current_user(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Could not validate credentials"
         )
-    user = crud.user.get(db, id=token_data.sub)
+    print(token_data.sub)
+    id: int = token_data.sub
+    query = select(model.User).where(model.User.id == id)
+    print(query)
+    await database.connect()
+    user = await database.fetch_one(query=query)
+    print(user)
+    await database.disconnect()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     return user

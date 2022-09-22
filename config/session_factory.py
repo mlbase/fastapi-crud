@@ -66,6 +66,6 @@ if __name__ == '__main__':
         rs = loop.run_until_complete(executing__(db=database, sql=stmt))
     except RuntimeError:
         pass
-    loop.close()
+    # loop.close()
     print('='*40)
     print(rs)

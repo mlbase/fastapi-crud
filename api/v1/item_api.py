@@ -7,25 +7,28 @@ import crud
 import model
 import schema
 from utils import dependencies
+import databases
+from config.session_factory import SQLALCHEMY_DATABASE_URL
 
+database = databases.Database(SQLALCHEMY_DATABASE_URL)
 router = APIRouter()
 
 
 @router.get("/", response_model=List[schema.Item])
-def read_items(
-    db: Session = Depends(dependencies.get_db),
+async def read_items(
     skip: int = 0,
     limit: int = 100,
     current_user: model.User = Depends(dependencies.get_current_user)
 ) -> Any:
+    query = "SELECT item.id, item.title, item.description, item.owner_id" \
+            + "FROM item JOIN api.user ON item.owner_id = api_user.user_id" \
+            + "AND api_user.user_id = :id"
+    value_map = {"id": current_user.id}
 
-    if current_user:
-        items = crud.item.get_multi(db, skip=skip, limit=limit)
-    else:
-        items = crud.item.get_multi_by_owner(
-            db=db, owner_id=current_user.id, skip=skip, limit=limit
-        )
-
+    async with database:
+        await database.connect()
+        items = await database.fetch_all(query=query, values=value_map)
+        await database.disconnect()
     return items
 
 

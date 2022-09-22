@@ -7,6 +7,7 @@ from config.session_factory import SessionLocal
 from api.api import api_router
 
 app = FastAPI()
+app.include_router(api_router, prefix="/v1")
 
 
 # Dependency
@@ -29,5 +30,4 @@ async def say_hello(name: str):
 
 
 if __name__ == "__main__":
-    app.include_router(api_router, prefix="/v1")
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True, workers=2)

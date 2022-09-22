@@ -1,15 +1,31 @@
 from typing import Any, List
 
-from fastapi import APIRouter, Depends, HTTPException, Body
+import pydantic
+from pydantic import Field
+from fastapi import APIRouter, Depends, HTTPException, Body, Response
 from fastapi.encoders import jsonable_encoder
 from pydantic.networks import EmailStr
 from sqlalchemy.orm import Session
+from sqlalchemy import select, update, Table
 import crud
 import model
 import schema
 from utils.dependencies import get_db, get_current_user
+import databases
+from config.session_factory import SQLALCHEMY_DATABASE_URL
+from config.security import get_password_hash
+from pydantic import BaseModel
 
+import json
+
+database = databases.Database(SQLALCHEMY_DATABASE_URL)
 router = APIRouter()
+
+
+class UpdateUser(BaseModel):
+    email: EmailStr = Field(description="요청할 이메일")
+    password: str = Field(description="변경할 비밀번호")
+    full_name: str = Field(description="변경할 이름")
 
 
 @router.get("/", response_model=List[schema.User])
@@ -37,10 +53,22 @@ def create_user(
         user_in: schema.UserCreate,
 ) -> Any:
     """
+    # testestset
 
-    :param db: orm_session
-    :param user_in: user that want to create
-    :return: User | None
+    - test!00
+
+    ```
+        @router.post("/", response_model=schema.User)
+def create_user(
+        *,
+        db: Session = Depends(get_db),
+        user_in: schema.UserCreate,
+) -> Any:
+    ```
+
+
+    ffffg
+
     """
     user = crud.user.get_by_email(db, email=user_in.email)
     if user:
@@ -53,34 +81,39 @@ def create_user(
 
 
 @router.put("/me", response_model=schema.User)
-def update_user_me(
+async def update_user_me(
         *,
-        db: Session = Depends(get_db),
-        password: str = Body(None),
-        full_name: str = Body(None),
-        email: EmailStr = Body(None),
+        request: UpdateUser,
         current_user: model.User = Depends(get_current_user)
 ) -> Any:
     """
 
-    :param db: orm_session
-    :param password:
-    :param full_name:
-    :param email:
-    :param current_user: injected by get_current_user, now it is "test"
-    :return: User | None
+    user update 하는 api \n
+    bearer-token needed
     """
 
     current_user_data = jsonable_encoder(current_user)
-    user_in = schema.UserUpdate(**current_user_data)
-    if password is not None:
-        user_in.password = password
-    if full_name is not None:
-        user_in.full_name = full_name
-    if email is not None:
-        user_in.email = email
-    user = crud.user.update(db, db_obj=current_user, obj_in=user_in)
-    return user
+    user_in = request
+    if request.password is not None:
+        user_in.password = get_password_hash(password=request.password)
+    if request.full_name is not None:
+        user_in.full_name = request.full_name
+    if request.email is not None:
+        user_in.email = request.email
+    value_map = dict(email=user_in.email, full_name=user_in.full_name, hashed_password=user_in.password)
+
+    query = """UPDATE api_user 
+            SET api_user.full_name = :full_name, api_user.hashed_password = :hashed_password 
+            WHERE api_user.email = :email"""
+
+    print(query)
+    # TODO with 쓰는것 확인
+    async with database as session:
+        await session.connect()
+        await session.execute(query=query, values=dict(value_map))
+        await session.disconnect()
+    return Response(status_code=202)
+    # return user_in
 
 
 @router.get("/me", response_model=schema.User)
