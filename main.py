@@ -1,53 +1,52 @@
 import time
-
+from types import NoneType
+from fastapi.responses import PlainTextResponse
 from fastapi import FastAPI, Depends, HTTPException, Request
 import uvicorn
 import databases
-from pydantic import ValidationError
-from starlette import status
-
 # from config.session_factory import SessionLocal, engine
 from config.session_factory import SessionLocal, SQLALCHEMY_DATABASE_URL
 from api.api import api_router
-from jose import jwt
-from jose.exceptions import JWTError
-from config.setting import settings
-from config import security
-from schema.token import TokenPayload
+from utils.app_middleware import token_decoder
+import logging
 
+logger = logging.getLogger()
 app = FastAPI()
 app.include_router(api_router, prefix="/v1")
 database = databases.Database(SQLALCHEMY_DATABASE_URL)
 
 
+@app.exception_handler(Exception)
+async def Exception_handler(request, exc):
+    return PlainTextResponse(str(exc), status_code=400)
+
+
 @app.middleware("http")
-async def http_filter(request: Request, call_next):
+async def http_role_filter(request: Request, call_next):
     start_time = time.time()
     response = await call_next(request)
     process_time = time.time() - start_time
     response.headers['X-Process-Time'] = str(process_time)
     if "v1/admins" in request.url.path:
         token = request.headers.get("Authorization").split(" ")[-1]
-        # print(token)
-        try:
-            payload = jwt.decode(
-                token, settings.SECRET_KEY, algorithms=[security.ALGORITHM]
+        print('token', token)
+        token_data = await token_decoder(token)
+        print('-------------------------')
+        if token_data is None:
+            return HTTPException(
+                status_code=403, detail="forbidden"
             )
-            token_data = TokenPayload(**payload)
-            # print(token_data)
-        except ValidationError:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Could not validate credentials"
-            )
-        except JWTError:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="jwt key가 유효하지 않습니다"
-            )
-
         if not token_data.is_superuser:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="관리자가 아닙니다")
+            return HTTPException(
+                status_code=403, detail="forbidden"
+            )
+        print(token_data)
+    return response
+
+
+@app.middleware("http")
+async def just_filter(request: Request, call_next):
+    response = await call_next(request)
     return response
 
 

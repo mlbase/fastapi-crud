@@ -1,6 +1,6 @@
 from datetime import timedelta
 from typing import Any
-
+from pydantic import BaseModel
 from fastapi import APIRouter, Body, Depends, HTTPException
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
@@ -24,7 +24,25 @@ logging.basicConfig()
 logging.getLogger("database.Database").setLevel(logging.INFO)
 
 
-@router.post("/access-token", response_model=schema.Token)
+@router.post("/access-token",
+             response_model=schema.Token,
+             responses={
+                 200: {
+                        "model": schema.Token,
+                        "description": "jwt response successfully",
+                        "content": {
+                            "application/json": {
+                                "example": {
+                                    "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHA...",
+                                    "token_type": "Bearer"
+                                }
+                            }
+                        }
+                       },
+                 400: {"description": "authentication failed"}
+             },
+             summary="토큰발급 api"
+             )
 async def login_access_token(
         form_data: OAuth2PasswordRequestForm = Depends()
 ) -> Any:
