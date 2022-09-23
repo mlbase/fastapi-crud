@@ -7,6 +7,7 @@ from sqlalchemy.sql import select
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import jwt
+from jose.exceptions import JWSSignatureError
 from pydantic import ValidationError
 
 from config.session_factory import SessionLocal, SQLALCHEMY_DATABASE_URL
@@ -36,10 +37,15 @@ async def get_current_user(
             token, settings.SECRET_KEY, algorithms=[security.ALGORITHM]
         )
         token_data= TokenPayload(**payload)
-    except (ValidationError):
+    except ValidationError:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Could not validate credentials"
+        )
+    except JWSSignatureError:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="유효한 jwt가 아닙니다."
         )
     print(token_data.sub)
     id: int = token_data.sub

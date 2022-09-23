@@ -30,12 +30,18 @@ async def login_access_token(
 ) -> Any:
     # with Session(engine) as session: sync 일 경우
 
-    query = select(model.User).filter(model.User.email == form_data.username)
-    print(query)
+    query = """
+            SELECT *
+            FROM api_user
+            WHERE api_user.email = :email
+            """
+    # query = select(model.User).filter(model.User.email)
+    # print(query)
     try:
         await database.connect()
         print("connection start")
-        user = await database.fetch_one(query)
+        user = await database.fetch_one(query=query, values={"email": form_data.username})
+        print(user)
     except ConnectionRefusedError:
         raise HTTPException(status_code=503, detail="Too many Request")
     finally:
@@ -53,7 +59,7 @@ async def login_access_token(
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     return {
         "access_token": security.create_access_token(
-            user.id, expires_delta=access_token_expires
+            subject=user.id, expires_delta=access_token_expires, superuser_check=user.is_superuser
         ),
         "token_type": "bearer",
     }

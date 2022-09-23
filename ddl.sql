@@ -3,7 +3,8 @@ create table api_user(
     full_name varchar(100),
     email text,
     hashed_password text,
-    is_active boolean
+    is_active boolean,
+    is_superuser boolean default=FALSE
 )
 
 create table item(
