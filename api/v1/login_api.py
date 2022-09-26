@@ -35,11 +35,15 @@ logging.getLogger("database.Database").setLevel(logging.INFO)
                                 "example": {
                                     "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHA...",
                                     "token_type": "Bearer"
+                                },
+                                "schema": {
+                                    "access_token": "jwt 토큰",
+                                    "token_type": "베어러 타입"
                                 }
                             }
                         }
                        },
-                 400: {"description": "authentication failed"}
+                 400: {"description": "Incorrect email or password"}
              },
              summary="토큰발급 api"
              )

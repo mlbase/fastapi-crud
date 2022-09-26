@@ -1,22 +1,24 @@
 from typing import Any, List
-
-import pydantic
-from pydantic import Field
+import asyncio
+import anyio
+import databases
 from fastapi import APIRouter, Depends, HTTPException, Body, Response
 from fastapi.encoders import jsonable_encoder
+import pydantic
+from pydantic import Field
+from pydantic import BaseModel
 from pydantic.networks import EmailStr
 from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update, Table
+#######################
 import crud
 import model
 import schema
 from utils.dependencies import get_db, get_current_user
-import databases
 from config.session_factory import SQLALCHEMY_DATABASE_URL
 from config.security import get_password_hash
-from pydantic import BaseModel
 
-import json
 
 database = databases.Database(SQLALCHEMY_DATABASE_URL)
 router = APIRouter()
@@ -30,7 +32,7 @@ class UpdateUser(BaseModel):
 
 @router.get("/", response_model=List[schema.User])
 def read_users(
-        db: Session = Depends(get_db),
+        db: AsyncSession = Depends(get_db),
         skip: int = 0,
         limit: int = 100,
 ) -> Any:
@@ -46,10 +48,34 @@ def read_users(
     # return ''
 
 
-@router.post("/", response_model=schema.User)
-def create_user(
+@router.post(
+    "/", response_model=schema.User,
+    responses={
+       200: {
+            "model": schema.User,
+            "description": "user created successfully",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "email": "user@example.com",
+                        "is_active": "True",
+                        "full_name": "홍길동",
+                        "password": "사용할 password"
+                    },
+                    "schema": {
+                        "email": "사용할 이메일, verfication 됨",
+                        "is_active": "활성화 여부, 입력할 필요 없음",
+                        "full_name": "사용할 이름",
+                        "password": "사용할 password"
+                    }
+                }
+            }
+       }
+    }
+)
+async def create_user(
         *,
-        db: Session = Depends(get_db),
+        db: AsyncSession = Depends(get_db),
         user_in: schema.UserCreate,
 ) -> Any:
     """
@@ -57,26 +83,19 @@ def create_user(
 
     - test!00
 
-    ```
-        @router.post("/", response_model=schema.User)
-def create_user(
-        *,
-        db: Session = Depends(get_db),
-        user_in: schema.UserCreate,
-) -> Any:
-    ```
-
-
-    ffffg
-
     """
-    user = crud.user.get_by_email(db, email=user_in.email)
+
+    result = await crud.user.get_by_email(db, email=user_in.email)
+    # while not result.raw.closed:
+    #     await anyio.sleep(delay=0.1)
+    user = result
     if user:
+        print(user.email)
         raise HTTPException(
             status_code=400,
             detail="The user with this username already exists in the system",
         )
-    user = crud.user.create(db, obj_in=user_in)
+    user = await crud.user.create(db, obj_in=user_in)
     return user
 
 
@@ -118,7 +137,7 @@ async def update_user_me(
 
 @router.get("/me", response_model=schema.User)
 def read_user_me(
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     current_user: model.User = Depends(get_current_user)
 ) -> Any:
     """
@@ -133,7 +152,7 @@ def read_user_me(
 @router.get("/open", response_model=schema.User)
 def create_user_open(
     *,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     password: str = Body(...),
     email: EmailStr = Body(...),
     full_name: str = Body(None)
@@ -160,7 +179,7 @@ def create_user_open(
 @router.put("/{user_id}", response_model=schema.User)
 def update_user(
     *,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     user_id: int,
     user_in: schema.UserUpdate,
 ) -> Any:
