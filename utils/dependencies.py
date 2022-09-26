@@ -4,13 +4,14 @@ import model
 import crud
 import databases
 from sqlalchemy.sql import select
+from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import jwt
 from jose.exceptions import JWSSignatureError
 from pydantic import ValidationError
 
-from config.session_factory import SessionLocal, SQLALCHEMY_DATABASE_URL
+from config.session_factory import engine, SQLALCHEMY_DATABASE_URL
 from schema.user import UserCreate, User, UserUpdate
 from schema.token import Token, TokenPayload
 from config import security
@@ -21,12 +22,12 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 database = databases.Database(SQLALCHEMY_DATABASE_URL)
 
 
-def get_db() -> Generator:
-    db = SessionLocal()
+async def get_db() -> AsyncSession:
+    db = AsyncSession(bind=engine)
     try:
         yield db
     finally:
-        db.close()
+        await db.close()
 
 
 async def get_current_user(
@@ -36,7 +37,7 @@ async def get_current_user(
         payload = jwt.decode(
             token, settings.SECRET_KEY, algorithms=[security.ALGORITHM]
         )
-        token_data= TokenPayload(**payload)
+        token_data = TokenPayload(**payload)
     except ValidationError:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
