@@ -18,7 +18,7 @@ database = databases.Database(SQLALCHEMY_DATABASE_URL)
 
 @app.exception_handler(Exception)
 async def Exception_handler(request, exc):
-    return PlainTextResponse(str(exc), status_code=400)
+    return PlainTextResponse(str(exc), status_code=exc.status_code)
 
 
 @app.middleware("http")
