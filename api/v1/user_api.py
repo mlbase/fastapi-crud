@@ -90,7 +90,6 @@ async def create_user(
     #     await anyio.sleep(delay=0.1)
     user = result
     if user:
-        print(user.email)
         raise HTTPException(
             status_code=400,
             detail="The user with this username already exists in the system",
