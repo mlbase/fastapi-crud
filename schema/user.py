@@ -1,5 +1,6 @@
 from pydantic import BaseModel, EmailStr, Field
-
+from typing import List
+from schema.item import ItemInDB
 
 #Shared properties
 class UserBase(BaseModel):
@@ -9,7 +10,7 @@ class UserBase(BaseModel):
 
 
 class UserCreate(UserBase):
-    email: EmailStr = Field(s="id@domain.com")
+    email: EmailStr = Field(str="id@domain.com")
     password: str = Field("비밀번호")
 
 
@@ -30,3 +31,10 @@ class User(UserInDBBase):
 
 class UserInDB(UserInDBBase):
     hashed_password: str
+
+
+class UserWithItem(UserBase):
+    items: List[ItemInDB] | None
+
+    class Config:
+        orm_mode = True
