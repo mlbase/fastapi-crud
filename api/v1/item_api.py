@@ -2,6 +2,7 @@ from typing import Any, List
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 import crud
 import model
@@ -33,20 +34,20 @@ async def read_items(
 
 
 @router.post("/", response_model=schema.Item)
-def create_item(
+async def create_item(
     *,
-    db: Session = Depends(dependencies.get_db),
+    db: AsyncSession = Depends(dependencies.get_db),
     item_in: schema.ItemCreate,
     current_user: model.user = Depends(dependencies.get_current_user),
 ) -> Any:
-    item = crud.item.create_with_owner(db=db, obj_in=item_in, owner_id=current_user.id)
+    item = await crud.item.create_with_owner(db=db, obj_in=item_in, owner_id=current_user.id)
     return item
 
 
 @router.put("/{id}", response_model=schema.Item)
 def update_item(
     *,
-    db: Session = Depends(dependencies.get_db),
+    db: AsyncSession = Depends(dependencies.get_db),
     id: int,
     item_in: schema.ItemUpdate,
     current_user: model.User = Depends(dependencies.get_current_user),
@@ -61,7 +62,7 @@ def update_item(
 @router.get("/{id}", response_model=schema.Item)
 def read_item(
     *,
-    db: Session = Depends(dependencies.get_db),
+    db: AsyncSession = Depends(dependencies.get_db),
     id: int,
     current_user: model.User = Depends(dependencies.get_current_user)
 ) -> Any:
@@ -74,7 +75,7 @@ def read_item(
 @router.delete("/{id}", response_model=schema.Item)
 def delete_item(
     *,
-    db: Session = Depends(dependencies.get_db),
+    db: AsyncSession = Depends(dependencies.get_db),
     id: int,
     current_user: model.User = Depends(dependencies.get_current_user)
 ) -> Any:
