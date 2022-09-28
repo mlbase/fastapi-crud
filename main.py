@@ -1,14 +1,14 @@
+# pip dependencies
 import time
-from types import NoneType
 from fastapi.responses import PlainTextResponse
 from fastapi import FastAPI, Depends, HTTPException, Request
+import logging
 import uvicorn
 import databases
-# from config.session_factory import SessionLocal, engine
+# local dependencies
 from config.session_factory import SessionLocal, SQLALCHEMY_DATABASE_URL
 from api.api import api_router
 from utils.app_middleware import token_decoder
-import logging
 
 logger = logging.getLogger()
 app = FastAPI()
@@ -31,7 +31,6 @@ async def http_role_filter(request: Request, call_next):
         token = request.headers.get("Authorization").split(" ")[-1]
         print('token', token)
         token_data = await token_decoder(token)
-        print('-------------------------')
         if token_data is None:
             return HTTPException(
                 status_code=403, detail="forbidden"
@@ -40,7 +39,6 @@ async def http_role_filter(request: Request, call_next):
             return HTTPException(
                 status_code=403, detail="forbidden"
             )
-        print(token_data)
     return response
 
 

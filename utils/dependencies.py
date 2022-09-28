@@ -48,7 +48,6 @@ async def get_current_user(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="유효한 jwt가 아닙니다."
         )
-    print(token_data.sub)
     id: int = token_data.sub
     query = select(model.User).where(model.User.id == id)
     print(query)
