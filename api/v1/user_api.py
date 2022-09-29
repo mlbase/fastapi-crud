@@ -98,7 +98,7 @@ async def create_user(
     return user
 
 
-@router.put("/me", response_model=schema.User)
+@router.patch("/me", response_model=schema.User)
 async def update_user_me(
         *,
         request: UpdateUser,
@@ -175,7 +175,7 @@ def create_user_open(
     return user
 
 
-@router.put("/{user_id}", response_model=schema.User)
+@router.patch("/{user_id}", response_model=schema.User)
 def update_user(
     *,
     db: AsyncSession = Depends(get_db),
