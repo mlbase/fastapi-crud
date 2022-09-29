@@ -1,24 +1,38 @@
 # pip dependencies
 import time
-from fastapi.responses import PlainTextResponse
-from fastapi import FastAPI, Depends, HTTPException, Request
+from fastapi.responses import PlainTextResponse, JSONResponse
+from fastapi import FastAPI, Depends, HTTPException, Request, APIRouter
 import logging
 import uvicorn
 import databases
+import inspect
 # local dependencies
 from config.session_factory import SessionLocal, SQLALCHEMY_DATABASE_URL
 from api.api import api_router
 from utils.app_middleware import token_decoder
+from error_handle.global_handler import RouteErrorHandler
 
 logger = logging.getLogger()
 app = FastAPI()
 app.include_router(api_router, prefix="/v1")
+router = APIRouter(route_class=RouteErrorHandler)
+app.include_router(router)
 database = databases.Database(SQLALCHEMY_DATABASE_URL)
 
 
 @app.exception_handler(Exception)
 async def Exception_handler(request, exc):
-    return PlainTextResponse(str(exc), status_code=exc.status_code)
+    print(dir(exc))
+
+
+    if not hasattr(exc, 'status_code'): # 예외처리 가 안된 error는 console 상의 메세지 띄우기
+        return PlainTextResponse(str(exc), status_code=500)
+    if hasattr(exc, '__cause__'):
+        if hasattr(exc, 'dev'): # custom exception 처리
+            exc.set_cause(exc.__cause__)
+            return JSONResponse(status_code=exc.status_code, content=exc.content)
+        return JSONResponse(content=exc.__cause__)
+    return JSONResponse(exc)
 
 
 @app.middleware("http")
