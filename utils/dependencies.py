@@ -16,7 +16,7 @@ from schema.user import UserCreate, User, UserUpdate
 from schema.token import Token, TokenPayload
 from config import security
 from config.setting import settings
-
+from custom_exception.Exceptions import AuthorizationException
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 database = databases.Database(SQLALCHEMY_DATABASE_URL)
