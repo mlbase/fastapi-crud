@@ -1,10 +1,11 @@
 from typing import Any, Dict, Generic, List, Optional, Type, TypeVar, Union
-
 from fastapi.encoders import jsonable_encoder
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession, AsyncEngine
 from sqlalchemy import select
+#local dependency
 from config.base_class import Base
+from schema.item import ItemInDB
 
 ModelType = TypeVar("ModelType", bound=Base)
 CreateSchemaType = TypeVar("CreateSchemaType", bound=BaseModel)
@@ -28,10 +29,10 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
     async def create(self, db: AsyncSession, *, obj_in: CreateSchemaType) -> ModelType:
         obj_in_data = jsonable_encoder(obj_in)
         db_obj = self.model(**obj_in_data)
-        db.add(db_obj)
+        await db.add(db_obj)
         db.commit()
         db.refresh(db_obj)
-        return await db_obj
+        return db_obj
 
     async def update(
             self,
@@ -48,13 +49,14 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         for filed in obj_data:
             if filed in update_data:
                 setattr(db_obj, filed, update_data[filed])
-        db.add(db_obj)
-        db.commit()
+        await db.add(db_obj)
+        await db.commit()
         db.refresh()
-        return await db_obj
+        return db_obj
 
     async def remove(self, db: AsyncSession, *, id: int) -> ModelType:
-        obj = db.query(self.model).get(id)
-        db.delete(obj)
-        db.commit()
-        return await obj
+        obj = await db.get(self.model, ident=id)
+        print(obj)
+        await db.delete(obj)
+        await db.commit()
+        return obj
