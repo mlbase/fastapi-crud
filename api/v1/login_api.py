@@ -2,12 +2,10 @@
 from datetime import timedelta
 from typing import Any
 from fastapi import APIRouter, Body, Depends, HTTPException
-from fastapi.encoders import jsonable_encoder, ENCODERS_BY_TYPE
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 import databases
 import logging
-import json
 # local dependency
 import crud
 from crud.crud_user import user
@@ -15,9 +13,9 @@ import model
 import schema
 from utils import dependencies
 from config import security
-from config.security import get_password_hash
 from config.setting import settings
-from config.session_factory import engine, SQLALCHEMY_DATABASE_URL
+from config.session_factory import SQLALCHEMY_DATABASE_URL
+from custom_exception.Exceptions import InvalidateUserException
 
 router = APIRouter()
 
@@ -67,10 +65,10 @@ async def login_access_token(
         print(form_data.username)
         current_user = await database.fetch_one(query=query, values={"email": form_data.username})
         if not current_user:
-            raise HTTPException(status_code=400, detail="Incorrect email or password")
-
+            # raise HTTPException(status_code=400, detail="Incorrect email or password")
+            raise InvalidateUserException
     except Exception:
-        raise HTTPException(status_code=503, detail="Too many Request")
+        raise InvalidateUserException
     finally:
         print("fetching end...")
         await database.disconnect()
@@ -78,7 +76,7 @@ async def login_access_token(
     password_check = security.verify_password(plain_password=form_data.password,
                                               hashed_password=current_user.hashed_password)
     if not password_check:
-        raise HTTPException(status_code=400, detail="Incorrect email or password")
+        raise InvalidateUserException
     elif not crud.user.is_active(current_user):
         raise HTTPException(status_code=400, detail="Inactive user")
 
