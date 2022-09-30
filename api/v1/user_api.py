@@ -180,7 +180,13 @@ def update_user(
     *,
     db: AsyncSession = Depends(get_db),
     user_id: int,
-    user_in: schema.UserUpdate,
+    user_in: schema.UserUpdate = Body(
+        example= {
+            "email": "test@example.com",
+            "password": "test",
+            "full_name": "testing..."
+        }
+    ),
 ) -> Any:
     """
 
