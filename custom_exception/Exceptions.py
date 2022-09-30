@@ -10,6 +10,7 @@ class ExceptionBase(Exception):
         "dev": dev
     }
 
+
     def __str__(self) -> str:
         return "{ status_code: " + str(self.status_code) + \
                ", detail: " + self.detail + \
@@ -22,8 +23,11 @@ class ExceptionBase(Exception):
             "dev": self.dev
         }
 
-    def set_cause(self, dev):
+    def set_content(self, dev, detail):
         self.content["dev"] = dev
+        self.content["detail"] = detail
+
+
 
 
 class InvalidateUserException(ExceptionBase):
@@ -31,10 +35,7 @@ class InvalidateUserException(ExceptionBase):
         self.status_code = 400
         self.detail = "이메일 또는 비밀번호가 정확하지 않습니다"
         self.dev = "login is not valid"
-        self.content = {
-            "detail": self.detail,
-            "dev": self.dev
-        }
+        self.set_content(detail=self.detail, dev=self.dev)
 
 
 class SQLException(ExceptionBase):
@@ -42,10 +43,7 @@ class SQLException(ExceptionBase):
         self.status_code = 500
         self.detail = "고객센터에 문의하세요"
         self.dev = "sql syntax error"
-        self.content = {
-            "detail": self.detail,
-            "dev": self.dev
-        }
+        self.set_content(detail=self.detail, dev=self.dev)
 
 
 class AuthorizationException(ExceptionBase):
@@ -53,7 +51,4 @@ class AuthorizationException(ExceptionBase):
         self.status_code = 401
         self.detail = "권한이 없습니다"
         self.dev = "validate token is needed"
-        self.content = {
-            "detail": self.detail,
-            "dev": self.dev
-        }
+        self.set_content(detail=self.detail, dev=self.dev)
