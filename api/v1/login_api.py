@@ -4,6 +4,7 @@ from typing import Any
 from fastapi import APIRouter, Body, Depends, HTTPException
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.exc import SQLAlchemyError
 import databases
 import logging
 # local dependency
@@ -15,7 +16,7 @@ from utils import dependencies
 from config import security
 from config.setting import settings
 from config.session_factory import SQLALCHEMY_DATABASE_URL
-from custom_exception.Exceptions import InvalidateUserException
+from custom_exception.Exceptions import InvalidateUserException, SQLException
 
 router = APIRouter()
 
@@ -67,8 +68,8 @@ async def login_access_token(
         if not current_user:
             # raise HTTPException(status_code=400, detail="Incorrect email or password")
             raise InvalidateUserException
-    except Exception:
-        raise InvalidateUserException
+    except SQLAlchemyError:
+        raise SQLAlchemyError
     finally:
         print("fetching end...")
         await database.disconnect()
