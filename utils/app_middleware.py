@@ -1,7 +1,7 @@
 from typing import Tuple, List, Dict
-from starlette.authentication import BaseUser
 from starlette import status
 from jose import jwt
+
 from config.setting import settings
 from config import security
 from schema.token import TokenPayload
@@ -10,6 +10,9 @@ from pydantic import ValidationError
 import logging
 logger = logging.getLogger()
 
+
+#TODO middleware 분리하기 조사
+#TODO starlette middleware로 authentication middleware 설계
 
 async def token_decoder(token: str) -> Dict:
     print('start', token)
@@ -31,3 +34,4 @@ async def token_decoder(token: str) -> Dict:
             raise HTTPException
         logger.exception("uncaught error")
     return token_data
+
