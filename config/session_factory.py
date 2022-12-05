@@ -25,9 +25,6 @@ logging.basicConfig()
 logging.getLogger("sqlalchemy.engine").setLevel(logging.INFO)
 
 
-async def executing__(db: Database, sql: str) -> Any:
-    await db.connect()
-    result = await db.fetch_all(query=sql, values=None)
-    return result
+
 
 

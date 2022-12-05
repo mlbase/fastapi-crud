@@ -4,11 +4,11 @@ create table api_user(
     email text,
     hashed_password text,
     is_active boolean,
-    is_superuser boolean default=FALSE
-)
+    is_superuser boolean default FALSE
+);
 
 create table item(
-    id INTEGER primary key ,
+    id INTEGER primary key auto_increment,
     title VARCHAR(100),
     description text,
     owner_id INTEGER

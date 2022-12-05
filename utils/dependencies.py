@@ -15,7 +15,7 @@ from schema.token import Token, TokenPayload
 from config import security
 from config.setting import settings
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/v1/logins/access_token")
 
 database = databases.Database(SQLALCHEMY_DATABASE_URL)
 

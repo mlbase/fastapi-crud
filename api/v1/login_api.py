@@ -2,9 +2,12 @@
 from datetime import timedelta
 from typing import Any
 from fastapi import APIRouter, Body, Depends, HTTPException
-from fastapi.security import OAuth2PasswordRequestForm
+from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.future import select
+from starlette.requests import Request
+from starlette.authentication import requires
 import databases
 import logging
 # local dependency
@@ -12,7 +15,7 @@ import crud
 from crud.crud_user import user
 import model
 import schema
-from utils import dependencies
+from utils.dependencies import get_db, get_current_user
 from config import security
 from config.setting import settings
 from config.session_factory import SQLALCHEMY_DATABASE_URL
@@ -23,6 +26,7 @@ router = APIRouter()
 database = databases.Database(SQLALCHEMY_DATABASE_URL)
 logging.basicConfig()
 logging.getLogger("database.Database").setLevel(logging.INFO)
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="access_token")
 
 
 @router.post("/access_token",
@@ -49,31 +53,16 @@ logging.getLogger("database.Database").setLevel(logging.INFO)
              summary="토큰발급 api"
              )
 async def login_access_token(
-        form_data: OAuth2PasswordRequestForm = Depends()
+        form_data: OAuth2PasswordRequestForm = Depends(),
+        db: AsyncSession = Depends(get_db)
 ) -> Any:
     # with Session(engine) as session: sync 일 경우
-
-    query = """
-            SELECT *
-            FROM api_user
-            WHERE api_user.email = :email
-            """
-    # query = select(model.User).filter(model.User.email)
-    print(query)
+    query = select(model.User).filter(model.User.email == form_data.username)
     try:
-        await database.connect()
-        print("connection start")
-        print(form_data.username)
-        current_user = await database.fetch_one(query=query, values={"email": form_data.username})
-        if not current_user:
-            # raise HTTPException(status_code=400, detail="Incorrect email or password")
-            raise InvalidateUserException
-    except SQLAlchemyError:
-        raise SQLAlchemyError
-    finally:
-        print("fetching end...")
-        await database.disconnect()
-    print("connection end")
+        query_result = await db.execute(query)
+        current_user = query_result.first().User
+    except SQLAlchemyError as ex:
+        raise ex
     password_check = security.verify_password(plain_password=form_data.password,
                                               hashed_password=current_user.hashed_password)
     if not password_check:
@@ -91,7 +80,12 @@ async def login_access_token(
 
 
 @router.post("/test_token", response_model=schema.User)
-def test_token(current_user: model.User = Depends(dependencies.get_current_user)) -> Any:
+@requires(["authenticated"])
+def test_token(
+        request: Request,
+        token=Depends(oauth2_scheme)
+) -> Any:
+    current_user = request.user
     return current_user
 
 
@@ -125,12 +119,15 @@ def test_token(current_user: model.User = Depends(dependencies.get_current_user)
                 }
             }
             )
+@requires(["authenticated", "admin"])
 async def user_my_page(
-        current_user: model.User = Depends(dependencies.get_current_user),
-        session: AsyncSession = Depends(dependencies.get_db)
+        # current_user: model.User = Depends(get_current_user),
+        token=Depends(oauth2_scheme),
+        *,
+        request: Request
 ) -> Any:
-    current_id = current_user.id
-    result = await user.get_by_id_raw(session, current_id)
+    # current_id = current_user.id
+    # result = await user.get_by_id_raw(session, current_id)
     # print(response)
-
+    result = request.user
     return result

@@ -1,37 +1,45 @@
-from typing import Tuple, List, Dict
-from starlette import status
+# pip dependency
+import typing
+from starlette.authentication import AuthenticationBackend, SimpleUser, AuthCredentials
+from starlette.requests import HTTPConnection
 from jose import jwt
-
+# local dependency
 from config.setting import settings
 from config import security
-from schema.token import TokenPayload
-from fastapi import HTTPException
-from pydantic import ValidationError
-import logging
-logger = logging.getLogger()
 
 
-#TODO middleware 분리하기 조사
-#TODO starlette middleware로 authentication middleware 설계
+class CustomAuthBackend(AuthenticationBackend):
 
-async def token_decoder(token: str) -> Dict:
-    print('start', token)
-    try:
-        payload = jwt.decode(
-            token, settings.SECRET_KEY, algorithms=[security.ALGORITHM]
-        )
-        token_data = TokenPayload(**payload)
-        if not token_data.is_superuser:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="관리자가 아닙니다")
-        print(token_data)
-    except ValidationError:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Could not validate credentials"
-        )
-    except Exception as ex:
-        if isinstance(ex, HTTPException):
-            raise HTTPException
-        logger.exception("uncaught error")
-    return token_data
+    async def authenticate(self, conn: HTTPConnection) -> \
+            typing.Optional[typing.Tuple["AuthCredentials", "CustomSimpleUser"]]:
+        if "Authorization" not in conn.headers:
+            return
+        auth = conn.headers["authorization"]
+        scheme, credential =auth.split()
+        if scheme.lower() != 'bearer':
+            return
+        else:
+            payload = jwt.decode(
+                        credential, settings.SECRET_KEY, algorithms=[security.ALGORITHM]
+            )
 
+            if payload['is_superuser']:
+                return AuthCredentials(["authenticated", "admin"]), \
+                       CustomSimpleUser(id=payload['sub'], is_superuser=payload['is_superuser'])
+            else:
+                return AuthCredentials(["authenticated"]), \
+                       CustomSimpleUser(id=payload["sub"], is_superuser=payload["is_superuser"])
+
+
+class CustomSimpleUser(SimpleUser):
+    def __init__(self, id: int, is_superuser: bool) -> None:
+        self.id = id
+        self.is_superuser = is_superuser
+
+
+    @property
+    def identity(self) -> int:
+        return self.id
+
+
+custom_backend = CustomAuthBackend()

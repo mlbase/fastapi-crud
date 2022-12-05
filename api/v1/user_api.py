@@ -49,29 +49,7 @@ def read_users(
 
 
 @router.post(
-    "/", response_model=schema.User,
-    responses={
-       200: {
-            "model": schema.User,
-            "description": "user created successfully",
-            "content": {
-                "application/json": {
-                    "example": {
-                        "email": "user@example.com",
-                        "is_active": "True",
-                        "full_name": "홍길동",
-                        "password": "사용할 password"
-                    },
-                    "schema": {
-                        "email": "사용할 이메일, verfication 됨",
-                        "is_active": "활성화 여부, 입력할 필요 없음",
-                        "full_name": "사용할 이름",
-                        "password": "사용할 password"
-                    }
-                }
-            }
-       }
-    }
+    "/", response_model=schema.User
 )
 async def create_user(
         *,
